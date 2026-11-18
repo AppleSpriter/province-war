@@ -28,12 +28,13 @@ function resize() {
   const avail = innerHeight - 52 - BOTTOM;
   baseScale = Math.min(innerWidth / MAP.w, avail / MAP.h) * 0.96;
   scale = baseScale * zoom;
+  if (MAP.wrap) { const Ws = MAP.w * scale; panX = ((panX + Ws / 2) % Ws + Ws) % Ws - Ws / 2; } // 横向循环
   ox = (innerWidth - MAP.w * scale) / 2 + panX; oy = (avail - MAP.h * scale) / 2 + panY;
 }
 addEventListener('resize', resize);
 
 function loadMap(key) {
-  MAP = MAPS[key]; zoom = 1; panX = panY = 0;
+  MAP = MAPS[key]; MAP.wrap = key === 'world'; zoom = 1; panX = panY = 0;
   if (!MAP.ready) { for (const p of MAP.p) p.path = new Path2D(p.d); MAP.ready = true; }
   maxArea = Math.max(...MAP.p.map(p => p.area));
   // 据点半径随地图密度缩放
@@ -62,7 +63,7 @@ function buildNodes() {
 }
 
 // ---------- 坐标 / 命中 ----------
-const toMap = (x, y) => [(x - ox) / scale, (y - 52 - oy) / scale];
+const toMap = (x, y) => { let mx = (x - ox) / scale; if (MAP && MAP.wrap) mx = ((mx % MAP.w) + MAP.w) % MAP.w; return [mx, (y - 52 - oy) / scale]; };
 const toScr = (x, y) => [ox + x * scale, oy + y * scale];
 const nodeR = n => MAP.r * Math.sqrt(zoom) * (0.7 + 0.15 * n.level); // 等级越高圈越大：1 级 0.85，4 级 1.3
 function pathHit(n, mx, my) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); const r = ctx.isPointInPath(n.p.path, mx, my); ctx.restore(); return r; }
@@ -230,7 +231,7 @@ cv.addEventListener('wheel', e => {
   if (!MAP) return;
   const [mx, my] = toMap(e.clientX, e.clientY);
   zoom = Math.max(1, Math.min(8, zoom * Math.exp(-e.deltaY * 0.0015)));
-  if (zoom === 1) { panX = panY = 0; resize(); return; }
+  if (zoom === 1 && !MAP.wrap) { panX = panY = 0; resize(); return; }
   resize();
   const [sx, sy] = toScr(mx, my); // 让鼠标下的点保持不动
   panX += e.clientX - sx; panY += e.clientY - 52 - sy; resize();
@@ -240,9 +241,20 @@ addEventListener('mousemove', e => {
   if (!panDrag) return;
   const dx = e.clientX - panDrag.x, dy = e.clientY - panDrag.y;
   if (Math.abs(dx) + Math.abs(dy) > 3) panDrag.moved = true;
-  if (panDrag.moved && zoom > 1) { panX += dx; panY += dy; panDrag.x = e.clientX; panDrag.y = e.clientY; resize(); }
+  if (panDrag.moved && (zoom > 1 || MAP.wrap)) { panX += dx; panY += dy; panDrag.x = e.clientX; panDrag.y = e.clientY; resize(); }
 });
 addEventListener('mouseup', e => { if (panDrag && (e.button === 1 || e.button === 2)) { if (!panDrag.moved && e.button === 2) rightClick(e); panDrag = null; } });
+const held = new Set();
+addEventListener('keydown', e => { const k = e.key.toLowerCase(); if ('wasd'.includes(k) && k && !/INPUT|SELECT/.test(e.target.tagName)) held.add(k); });
+addEventListener('keyup', e => held.delete(e.key.toLowerCase()));
+addEventListener('blur', () => held.clear());
+function panByKeys(realDt) { // WASD 移动视野，每秒约 700 像素
+  if (!held.size || !MAP) return;
+  const v = 700 * realDt;
+  if (held.has('a')) panX += v; if (held.has('d')) panX -= v;
+  if (held.has('w')) panY += v; if (held.has('s')) panY -= v;
+  resize();
+}
 addEventListener('keydown', e => { if (e.key === '0' && !/INPUT|SELECT/.test(e.target.tagName)) { zoom = 1; panX = panY = 0; resize(); } });
 cv.addEventListener('mousedown', e => {
   if (e.button !== 0) return;
@@ -295,7 +307,7 @@ function rightClick(e) {
 }
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-  if (e.key === 'a' || e.key === 'A') selectAll();
+  if (e.key === 'q' || e.key === 'Q') selectAll();
   if (e.code === 'Space' || e.key === 'Escape') { e.preventDefault(); togglePause(); }
 });
 function setPaused(v) {
@@ -345,10 +357,20 @@ $('goBtn').onclick = () => {
 };
 
 // ---------- 绘制 ----------
+let firstPass = true;
 function draw() {
-  const dpr = devicePixelRatio;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
   if (!nodes) return;
+  if (!MAP.wrap) { firstPass = true; drawPass(); return; }
+  const base = ox, Ws = MAP.w * scale;
+  for (const k of [-1, 0, 1]) { // 世界地图：左右各再画一份，实现无缝循环
+    ox = base + k * Ws; firstPass = k === 0;
+    if (ox + Ws > 0 && ox < innerWidth) drawPass();
+  }
+  ox = base;
+}
+function drawPass() {
+  const dpr = devicePixelRatio;
   ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * ox, dpr * oy);
   for (const n of nodes) {
     ctx.fillStyle = n.owner < 0 ? NEUTRAL : tint(n.owner, sel.has(n) ? 'cc' : '88');
@@ -358,7 +380,7 @@ function draw() {
   }
   if (drag && drag.chain && drag.moved) { // 串联拖拽箭头
     const group = [...drag.chain];
-    const [tx, ty] = toMap(drag.x, drag.y);
+    const tx = (drag.x - ox) / scale, ty = (drag.y - 52 - oy) / scale;
     ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 2 / scale; ctx.setLineDash([6 / scale, 4 / scale]);
     for (const g of group) { ctx.beginPath(); ctx.moveTo(g.p.cx, g.p.cy); ctx.lineTo(tx, ty); ctx.stroke(); }
     ctx.setLineDash([]);
@@ -391,7 +413,7 @@ function draw() {
       ctx.beginPath(); ctx.arc(x, y, r + 1.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * n.exp / EXP_NEED[n.level]);
       ctx.strokeStyle = '#ffffffcc'; ctx.lineWidth = 2; ctx.stroke();
     }
-    if (n.flash > 0) { n.flash -= 0.02; ctx.beginPath(); ctx.arc(x, y, r + 14 * (1 - n.flash), 0, 7); ctx.strokeStyle = `rgba(255,209,102,${Math.max(0, n.flash)})`; ctx.lineWidth = 3; ctx.stroke(); }
+    if (n.flash > 0) { if (firstPass) n.flash -= 0.02; ctx.beginPath(); ctx.arc(x, y, r + 14 * (1 - n.flash), 0, 7); ctx.strokeStyle = `rgba(255,209,102,${Math.max(0, n.flash)})`; ctx.lineWidth = 3; ctx.stroke(); }
     { // 等级圆点：圈上方，几级就几个点（4 级为金色）
       const dr = Math.max(2, r * 0.18), gap = dr * 2.6, by = y - r - dr - 3;
       for (let k = 0; k < n.level; k++) {
@@ -404,7 +426,7 @@ function draw() {
     ctx.fillStyle = '#fff'; ctx.font = `bold ${fs}px sans-serif`; ctx.fillText(n.troops, x, y + 1);
     if (MAP.r * Math.sqrt(zoom) >= 9 || hover === n) { ctx.fillStyle = '#ffffffbb'; ctx.font = `${Math.max(10, fs - 2)}px sans-serif`; ctx.fillText(hover === n && n.p.full ? n.p.full : n.p.name, x, y + r + 8); }
   }
-  if (drag && drag.moved && !drag.chain) { // 框选矩形
+  if (drag && drag.moved && !drag.chain && firstPass) { // 框选矩形
     ctx.translate(0, -52);
     ctx.fillStyle = '#ffd16622'; ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 1;
     ctx.fillRect(drag.x0, drag.y0, drag.x - drag.x0, drag.y - drag.y0); ctx.strokeRect(drag.x0, drag.y0, drag.x - drag.x0, drag.y - drag.y0);
@@ -420,14 +442,15 @@ function hud() { // 状态栏：只列出你和兵力前 4 的对手
   $('stats').innerHTML = show.map(o => { const a = agg.get(o) || { c: 0, t: 0 }; return `<span><b style="background:${color(o)}"></b>${nameOf(o)} ${a.c}地 / ${a.t}兵</span>`; }).join('')
     + (rest > 0 ? `<span>+${rest} 个对手</span>` : '');
   $('tip').innerHTML = phase === 'pick' ? `点击地图选择你在<em>${MAP.title}</em>的起始地区`
-    : phase === 'play' ? `已选 <em>${sel.size}</em> · 按住己方城市<em>拖到</em>目标出兵 · <em>长按</em>加入选择 · 空白拖动框选 · 圆点＝等级 · 滚轮缩放 · 空格暂停`
+    : phase === 'play' ? `已选 <em>${sel.size}</em> · 按住己方城市<em>拖到</em>目标出兵 · <em>长按</em>加入选择 · 空白拖动框选 · 圆点＝等级 · WASD 移动 · 滚轮缩放 · Q 全选 · 空格暂停`
     : '';
   $('tip').style.display = $('tip').innerHTML ? '' : 'none';
 }
 
 let last = performance.now(), hudT = 0;
 function loop(now) {
-  const dt = Math.min(0.05, (now - last) / 1000) * cfg.speed; last = now;
+  const realDt = Math.min(0.05, (now - last) / 1000), dt = realDt * cfg.speed; last = now;
+  panByKeys(realDt);
   update(dt); draw();
   if ((hudT -= dt) <= 0) { hudT = 0.2; hud(); }
   requestAnimationFrame(loop);
