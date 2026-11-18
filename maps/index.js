@@ -1,0 +1,1 @@
+window.MAP_INDEX=[{"key":"china","title":"中国","n":33},{"key":"usa","title":"美国","n":43},{"key":"japan","title":"日本","n":19},{"key":"europe","title":"欧洲","n":29},{"key":"india","title":"印度","n":28},{"key":"brazil","title":"巴西","n":25},{"key":"germany","title":"德国","n":14},{"key":"world","title":"世界","n":69}];

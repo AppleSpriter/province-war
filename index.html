@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>省份争霸 · 多选版</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0b1424;color:#dfe7f5;font-family:-apple-system,"PingFang SC",sans-serif;overflow:hidden;user-select:none}
+#bar{position:fixed;top:0;left:0;right:0;height:52px;display:flex;align-items:center;gap:14px;padding:0 16px;background:#101c33cc;border-bottom:1px solid #1f2f4f;z-index:2}
+#bar h1{font-size:17px;margin:0 8px 0 0;color:#ffd166;white-space:nowrap}
+.grp{display:flex;gap:4px;align-items:center;font-size:13px;flex-wrap:wrap}
+.grp>span{opacity:.7;margin-right:2px}
+button{background:#1a2a48;color:#dfe7f5;border:1px solid #2c4170;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:13px}
+button.on{background:#ffd166;color:#1a1a1a;border-color:#ffd166}
+button:hover{filter:brightness(1.2)}
+#stats{margin-left:auto;font-size:13px;display:flex;gap:12px;white-space:nowrap}
+#stats b{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+#cv{position:fixed;top:52px;left:0;cursor:crosshair}
+#tip{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#101c33dd;border:1px solid #2c4170;padding:8px 16px;border-radius:8px;font-size:13px;z-index:2;max-width:70vw}
+#tip em{color:#ffd166;font-style:normal}
+.mask{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;z-index:5}
+.panel{background:#13213d;border:1px solid #2c4170;border-radius:12px;padding:26px 34px;min-width:460px;max-width:92vw}
+.panel h2{margin:0 0 18px;font-size:24px;text-align:center}
+.row{display:flex;align-items:center;gap:12px;margin:14px 0;font-size:14px}
+.row>label{width:72px;opacity:.75;flex-shrink:0}
+input[type=range]{flex:1;accent-color:#ffd166}
+input[type=number]{width:64px;background:#0b1424;color:#fff;border:1px solid #2c4170;border-radius:6px;padding:4px 6px}
+select{background:#0b1424;color:#fff;border:1px solid #2c4170;border-radius:6px;padding:5px 8px;font-size:13px;max-width:180px}
+.go{display:block;margin:22px auto 0;font-size:16px;padding:9px 40px;background:#ffd166;color:#1a1a1a;border:none}
+.hint{font-size:12px;opacity:.6}
+#endPanel{text-align:center}
+#toasts{position:fixed;top:60px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;z-index:3;pointer-events:none}
+.toast{background:#101c33e6;border:1px solid #2c4170;border-left:4px solid;padding:4px 14px;border-radius:6px;font-size:13px;opacity:.85;transition:opacity .4s}
+.toast.mine{font-size:15px;font-weight:bold;opacity:1;color:#ffd166}
+#pauseTag{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);font-size:40px;font-weight:bold;color:#ffd166;background:#0b1424cc;padding:14px 40px;border-radius:12px;border:1px solid #ffd166;display:none;z-index:3;pointer-events:none}
+</style></head><body>
+<div id="bar">
+  <h1>☀️ 省份争霸</h1>
+  <div class="grp"><span>速度</span><button data-s="0.5">0.5x</button><button data-s="1" class="on">1x</button><button data-s="1.5">1.5x</button></div>
+  <div class="grp"><span>出兵</span><button data-r="0.5">50%</button><button data-r="1" class="on">全部</button></div>
+  <div class="grp"><button id="pauseBtn">⏸ 暂停 (空格/Esc)</button><button id="selAll">全选 (A)</button><button id="newGame">新开局</button></div>
+  <div id="stats"></div>
+</div>
+<canvas id="cv"></canvas>
+<div id="tip"></div>
+<div id="toasts"></div>
+<div id="pauseTag">⏸ 已暂停</div>
+
+<div class="mask" id="setup"><div class="panel">
+  <h2>⚔️ 新开局</h2>
+  <div class="row"><label>地图</label><div class="grp" id="mapBtns"></div></div>
+  <div class="row"><label>对手数量</label><input type="range" id="aiRange" min="1"><input type="number" id="aiNum" min="1"><span class="hint" id="aiMax"></span></div>
+  <div class="row"><label>难度</label><div class="grp"><button data-d="0">简单</button><button data-d="1" class="on">普通</button><button data-d="2">困难</button></div></div>
+  <div class="row"><label>初始地点</label><select id="startSel"></select><span class="hint">选「在地图上点选」则开局后点击</span></div>
+  <button class="go" id="goBtn">开始游戏</button>
+</div></div>
+
+<div class="mask" id="endMask"><div class="panel" id="endPanel"><h2 id="mtitle"></h2><p id="mtext"></p><button class="go" id="again">再来一局</button></div></div>
+
+<script src="maps/index.js"></script>
+<script src="maps/china.js"></script><script src="maps/usa.js"></script><script src="maps/japan.js"></script><script src="maps/europe.js"></script>
+<script src="maps/india.js"></script><script src="maps/brazil.js"></script><script src="maps/germany.js"></script><script src="maps/world.js"></script>
+<script src="maps/levels.js"></script>
+<script src="game.js"></script>
+</body></html>
