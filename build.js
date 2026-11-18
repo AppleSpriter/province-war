@@ -70,6 +70,8 @@ for (const M of MAPS) {
   // 合并同名（如欧洲数据里的重复国家）
   const merged = {};
   for (const o of out) { const m = merged[o.name]; if (!m) merged[o.name] = o; else { m.d += o.d; if (o.area > m.area) { m.cx = o.cx; m.cy = o.cy; } m.area += o.area; } }
+  // 世界地图：中国台湾归入中国（不单列、不出现在「含…」描述里）
+  if (merged['中国台湾'] && merged['中国']) { const t = merged['中国台湾'], c = merged['中国']; c.d += t.d; c.area += t.area; delete merged['中国台湾']; }
   let list = Object.values(merged);
   // 合并过近 / 过小的地区：小的并入离它最近的大地区，直到任意两个据点间距 >= minD
   const minD = M.minD || 26, minA = M.minA || 0;
