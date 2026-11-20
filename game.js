@@ -309,6 +309,8 @@ function rightClick(e) {
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if (e.key === 'q' || e.key === 'Q') selectAll();
+  const R = { '1': '0.5', '2': '0.8', '3': '1' }[e.key]; // 1/2/3 切换出兵比例
+  if (R) document.querySelector(`[data-r="${R}"]`).click();
   if (e.code === 'Space' || e.key === 'Escape') { e.preventDefault(); togglePause(); }
 });
 function setPaused(v) {
@@ -443,7 +445,7 @@ function hud() { // 状态栏：只列出你和兵力前 4 的对手
   $('stats').innerHTML = show.map(o => { const a = agg.get(o) || { c: 0, t: 0 }; return `<span><b style="background:${color(o)}"></b>${nameOf(o)} ${a.c}地 / ${a.t}兵</span>`; }).join('')
     + (rest > 0 ? `<span>+${rest} 个对手</span>` : '');
   $('tip').innerHTML = phase === 'pick' ? `点击地图选择你在<em>${MAP.title}</em>的起始地区`
-    : phase === 'play' ? `已选 <em>${sel.size}</em> · 按住己方城市<em>拖到</em>目标出兵 · <em>长按</em>加入选择 · 空白拖动框选 · 右键取消选中 · 圆点＝等级 · WASD 移动 · 滚轮缩放 · Q 全选 · 空格暂停`
+    : phase === 'play' ? `已选 <em>${sel.size}</em> · 按住己方城市<em>拖到</em>目标出兵 · <em>长按</em>加入选择 · 空白拖动框选 · 右键取消选中 · 圆点＝等级 · WASD 移动 · 滚轮缩放 · Q 全选 · 1/2/3 出兵 50%/80%/全部 · 空格暂停`
     : '';
   $('tip').style.display = $('tip').innerHTML ? '' : 'none';
 }
