@@ -1,12 +1,35 @@
-# 省份争霸 · 多选版
+# Province Wars
 
-浏览器即开即玩的地图占领策略游戏（纯静态 HTML/JS，无依赖）。
+**▶ Play online: https://applespriter.github.io/province-war/**  ·  [中文版](https://applespriter.github.io/province-war/?lang=zh)
 
-- 8 张地图：中国、美国、日本、欧洲、印度、巴西、德国、世界
-- 城市 1~4 级，驻军积累经验升级，易主扣经验/降级
-- 按住己方城市拖到目标出兵，途经己方城市自动串联；长按加入选择；框选；滚轮缩放
-- 空格/Esc 暂停，三档 AI 难度，任意对手数量
+A real-time map conquest strategy game that runs in the browser. Pure static HTML/JS, no dependencies, no build step.
 
-本地运行：直接打开 `index.html`。
+## Features
 
-地图数据：`build.js` 读取 `raw/*.json`（GeoJSON，未入库，来源见 build.js）生成 `maps/*.js`。
+- **8 maps**: USA, China, Japan, Europe, India, Brazil, Germany, World (the World map wraps left↔right)
+- **Any number of opponents** (up to every region), 3 AI difficulty levels, random or chosen starting region
+- **City levels 1–4**: level 3 produces troops at normal speed, level 2 at 2/3, level 1 at 1/3, level 4 at 1.5×. Starting levels roughly follow each region's real economy
+- **Experience**: garrisoned troops × seconds (capped at 100 troops) levels a city up; losing a city costs experience and can drop its level
+- Attack lines when an AI launches an attack, and on-screen notices for captures and level changes
+- English and Chinese UI (auto-detected; switch with the `中文` / `EN` button or `?lang=en` / `?lang=zh`)
+
+## Controls
+
+| Action | Input |
+|---|---|
+| Send troops / reinforce | Press on your city and drag to a target (passing over your other cities chains them in) |
+| Select | Click your city; long-press or Shift+click to add more; drag on empty space to box-select |
+| Attack with selection | Click a target |
+| Deselect | Right-click (a selected city removes just that one) |
+| Select all | `Q` |
+| Send ratio | `1` 50% · `2` 80% · `3` all (default) |
+| Move / zoom view | `WASD`, right-drag, mouse wheel, `0` to reset |
+| Pause | `Space` / `Esc` |
+
+## Run locally
+
+Open `index.html` in a browser.
+
+## Map data
+
+`build.js` converts GeoJSON files in `raw/` (not committed; sources are listed in `build.js`) into `maps/*.js`. Initial city levels live in `maps/levels.js`.

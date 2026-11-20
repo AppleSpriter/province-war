@@ -5,15 +5,17 @@ const ZH_WORLD = { China: '中国', Russia: '俄罗斯', 'United States of Ameri
 const BR = { AC: '阿克里', AL: '阿拉戈斯', AP: '阿马帕', AM: '亚马孙', BA: '巴伊亚', CE: '塞阿拉', DF: '联邦区', ES: '圣埃斯皮里图', GO: '戈亚斯', MA: '马拉尼昂', MT: '马托格罗索', MS: '南马托格罗索', MG: '米纳斯', PA: '帕拉', PB: '帕拉伊巴', PR: '巴拉那', PE: '伯南布哥', PI: '皮奥伊', RJ: '里约', RN: '北里奥', RS: '南里奥', RO: '朗多尼亚', RR: '罗赖马', SC: '圣卡塔琳娜', SP: '圣保罗', SE: '塞尔希培', TO: '托坎廷斯' };
 const DE = { 'Baden-Württemberg': '巴登-符腾堡', Bayern: '巴伐利亚', Berlin: '柏林', Brandenburg: '勃兰登堡', Bremen: '不来梅', Hamburg: '汉堡', Hessen: '黑森', 'Mecklenburg-Vorpommern': '梅前州', Niedersachsen: '下萨克森', 'Nordrhein-Westfalen': '北威州', 'Rheinland-Pfalz': '莱法州', Saarland: '萨尔', Sachsen: '萨克森', 'Sachsen-Anhalt': '萨安州', 'Schleswig-Holstein': '石荷州', 'Thüringen': '图林根' };
 
+const CN_EN = { 北京: 'Beijing', 天津: 'Tianjin', 河北: 'Hebei', 山西: 'Shanxi', 内蒙古: 'Inner Mongolia', 辽宁: 'Liaoning', 吉林: 'Jilin', 黑龙江: 'Heilongjiang', 上海: 'Shanghai', 江苏: 'Jiangsu', 浙江: 'Zhejiang', 安徽: 'Anhui', 福建: 'Fujian', 江西: 'Jiangxi', 山东: 'Shandong', 河南: 'Henan', 湖北: 'Hubei', 湖南: 'Hunan', 广东: 'Guangdong', 广西: 'Guangxi', 海南: 'Hainan', 重庆: 'Chongqing', 四川: 'Sichuan', 贵州: 'Guizhou', 云南: 'Yunnan', 西藏: 'Tibet', 陕西: 'Shaanxi', 甘肃: 'Gansu', 青海: 'Qinghai', 宁夏: 'Ningxia', 新疆: 'Xinjiang', 台湾: 'Taiwan', 香港: 'Hong Kong', 澳门: 'Macau' };
+const EN_FIX = { 'United States of America': 'USA', 'Democratic Republic of the Congo': 'DR Congo', 'United Kingdom': 'UK' };
 const MAPS = [
-  { key: 'china', title: '中国', file: 'china.json', lat: [17.5, 54], minD: 0, name: p => p.name && p.name.replace(/(省|市|壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区)$/, '') },
-  { key: 'usa', title: '美国', file: 'usa.json', name: p => p.name, skip: n => ['Alaska', 'Hawaii', 'Puerto Rico'].includes(n), minD: 45 },
-  { key: 'japan', title: '日本', file: 'japan.json', name: p => p.nam_ja.replace(/(都|府|県)$/, ''), lat: [24, 46], minD: 38 },
-  { key: 'europe', title: '欧洲', file: 'europe.json', name: p => p.NAME, lon: [-25, 45], lat: [34, 72], skip: n => ['Azerbaijan', 'Armenia', 'Georgia', 'Kazakhstan'].includes(n), tiny: 40, minD: 50, minA: 120 },
-  { key: 'india', title: '印度', file: 'india.json', name: p => p.NAME_1, minD: 50, minA: 150 },
-  { key: 'brazil', title: '巴西', file: 'brazil.json', name: p => BR[p.sigla] || p.name, minD: 50 },
-  { key: 'germany', title: '德国', file: 'germany.json', name: p => DE[p.name] || p.name, minD: 60 },
-  { key: 'world', title: '世界', file: 'world.json', name: p => ZH_WORLD[p.name] || p.name, skip: n => ['Antarctica', 'French Southern and Antarctic Lands'].includes(n), lat: [-58, 80], tiny: 30, minD: 24, minA: 20 },
+  { key: 'china', titleEn: 'China', title: '中国', file: 'china.json', lat: [17.5, 54], minD: 0, en: p => CN_EN[p.name && p.name.replace(/(省|市|壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区)$/, '')], name: p => p.name && p.name.replace(/(省|市|壮族自治区|回族自治区|维吾尔自治区|自治区|特别行政区)$/, '') },
+  { key: 'usa', titleEn: 'USA', title: '美国', file: 'usa.json', name: p => p.name, skip: n => ['Alaska', 'Hawaii', 'Puerto Rico'].includes(n), minD: 45 },
+  { key: 'japan', titleEn: 'Japan', title: '日本', file: 'japan.json', en: p => p.nam.replace(/ (Fu|Ken|To|Do)$/, ''), name: p => p.nam_ja.replace(/(都|府|県)$/, ''), lat: [24, 46], minD: 38 },
+  { key: 'europe', titleEn: 'Europe', title: '欧洲', file: 'europe.json', name: p => p.NAME, lon: [-25, 45], lat: [34, 72], skip: n => ['Azerbaijan', 'Armenia', 'Georgia', 'Kazakhstan'].includes(n), tiny: 40, minD: 50, minA: 120 },
+  { key: 'india', titleEn: 'India', title: '印度', file: 'india.json', name: p => p.NAME_1, minD: 50, minA: 150 },
+  { key: 'brazil', titleEn: 'Brazil', title: '巴西', file: 'brazil.json', en: p => p.name, name: p => BR[p.sigla] || p.name, minD: 50 },
+  { key: 'germany', titleEn: 'Germany', title: '德国', file: 'germany.json', en: p => p.name, name: p => DE[p.name] || p.name, minD: 60 },
+  { key: 'world', titleEn: 'World', title: '世界', file: 'world.json', en: p => EN_FIX[p.name] || p.name, name: p => ZH_WORLD[p.name] || p.name, skip: n => ['Antarctica', 'French Southern and Antarctic Lands'].includes(n), lat: [-58, 80], tiny: 30, minD: 24, minA: 20 },
 ];
 
 const merc = la => Math.log(Math.tan(Math.PI / 4 + Math.max(-85, Math.min(85, la)) * Math.PI / 360));
@@ -45,7 +47,8 @@ for (const M of MAPS) {
     if (!name || (M.skip && M.skip(name))) continue;
     const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates : [];
     const rings = polys.map(p => p[0]).filter(r => r.every(([lo, la]) => (!M.lon || (lo >= M.lon[0] && lo <= M.lon[1])) && (!M.lat || (la >= M.lat[0] && la <= M.lat[1]))));
-    if (rings.length) feats.push({ name, rings });
+    const en = (M.en ? M.en(f.properties || {}) : null) || name;
+    if (rings.length) feats.push({ name, en, rings });
   }
   // 自动取范围
   let lo0 = 1e9, lo1 = -1e9, la0 = 1e9, la1 = -1e9;
@@ -65,7 +68,7 @@ for (const M of MAPS) {
     }
     if (!d || area < (M.tiny || 0) * 0) continue;
     const [cx, cy] = label(big);
-    out.push({ name: f.name, d, area: Math.round(area), cx: +cx.toFixed(1), cy: +cy.toFixed(1) });
+    out.push({ name: f.name, en: f.en, d, area: Math.round(area), cx: +cx.toFixed(1), cy: +cy.toFixed(1) });
   }
   // 合并同名（如欧洲数据里的重复国家）
   const merged = {};
@@ -84,12 +87,12 @@ for (const M of MAPS) {
     }
     if (!pick) break;
     const [a, b] = pick;
-    b.d += a.d; b.area += a.area; (b.absorbed = b.absorbed || []).push(a.name, ...(a.absorbed || []));
+    b.d += a.d; b.area += a.area; (b.absorbed = b.absorbed || []).push(a.name, ...(a.absorbed || [])); (b.absEn = b.absEn || []).push(a.en, ...(a.absEn || []));
     list = list.filter(x => x !== a);
   }
-  for (const o of list) { if (o.absorbed) o.full = o.name + '（含 ' + o.absorbed.join('、') + '）'; delete o.absorbed; }
-  fs.writeFileSync(`${D}/maps/${M.key}.js`, `(window.MAPS=window.MAPS||{})[${JSON.stringify(M.key)}]=` + JSON.stringify({ title: M.title, w: W, h: H, p: list }) + ';');
-  index.push({ key: M.key, title: M.title, n: list.length });
+  for (const o of list) { if (o.absorbed) o.full = o.name + '（含 ' + o.absorbed.join('、') + '）'; if (o.absEn) o.fullEn = o.en + ' (incl. ' + o.absEn.join(', ') + ')'; delete o.absorbed; delete o.absEn; if (o.en === o.name) delete o.en; }
+  fs.writeFileSync(`${D}/maps/${M.key}.js`, `(window.MAPS=window.MAPS||{})[${JSON.stringify(M.key)}]=` + JSON.stringify({ title: M.title, titleEn: M.titleEn, w: W, h: H, p: list }) + ';');
+  index.push({ key: M.key, title: M.title, titleEn: M.titleEn, n: list.length });
   console.log(M.key, list.length, 'regions', W + 'x' + H, (fs.statSync(`${D}/maps/${M.key}.js`).size / 1024 | 0) + 'KB');
 }
 fs.writeFileSync(D + '/maps/index.js', 'window.MAP_INDEX=' + JSON.stringify(index) + ';');

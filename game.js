@@ -6,10 +6,21 @@ const BASE_COLORS = ['#3fa7ff', '#ff5d5d', '#5ee07a', '#c77dff', '#ffa94d', '#2e
 const color = o => o < BASE_COLORS.length ? BASE_COLORS[o] : `hsl(${(o * 137.5) % 360},70%,60%)`;
 const hex2 = c => c.startsWith('#') ? c : c; // hsl 颜色不能直接拼 alpha
 const tint = (o, a) => { const c = color(o); return c.startsWith('#') ? c + a : c.replace('hsl', 'hsla').replace(')', `,${parseInt(a, 16) / 255})`); };
-const AI_NAMES = ['你', '赤军', '翠军', '紫军', '橙军', '青军', '粉军', '黄军'];
+// ---------- 语言 / Language ----------
+const LANG = (() => {
+  const q = new URLSearchParams(location.search).get('lang');
+  if (q === 'en' || q === 'zh') { localStorage.setItem('pw-lang', q); return q; }
+  return localStorage.getItem('pw-lang') || (/^zh/i.test(navigator.language) ? 'zh' : 'en');
+})();
+const EN = LANG === 'en';
+const T = (zh, en) => EN ? en : zh;
+const rn = p => EN ? (p.en || p.name) : p.name;          // 地区名
+const rfull = p => EN ? (p.fullEn || null) : (p.full || null);
+const mapTitle = m => EN ? (m.titleEn || m.title) : m.title;
+const AI_NAMES = EN ? ['You', 'Red', 'Green', 'Purple', 'Orange', 'Cyan', 'Pink', 'Yellow'] : ['你', '赤军', '翠军', '紫军', '橙军', '青军', '粉军', '黄军'];
 const nameOf = o => AI_NAMES[o] || `AI-${o}`;
 
-const cfg = { map: 'china', diff: 1, speed: 1, ais: 3, ratio: 1, start: 'pick' };
+const cfg = { map: EN ? 'usa' : 'china', diff: 1, speed: 1, ais: 3, ratio: 1, start: 'pick' };
 const DIFF = [ // AI 思考间隔(秒)、进攻所需兵力倍数、是否多点合兵、是否主动增援
   { think: 3.2, margin: 1.6, combine: false, reinforce: false },
   { think: 1.8, margin: 1.25, combine: true, reinforce: false },
@@ -124,7 +135,7 @@ function update(dt) {
   }
   for (const n of nodes) if (n.owner >= 0 && n.level < 4) {
     n.exp += Math.min(n.troops, EXP_TROOP_CAP) * dt;
-    if (n.exp >= EXP_NEED[n.level]) { n.exp -= EXP_NEED[n.level]; setLevel(n, n.level + 1); n.flash = 1; toast(`⬆️ ${nameOf(n.owner)}的 ${n.p.name} 升到 ${n.level} 级`, n.owner); }
+    if (n.exp >= EXP_NEED[n.level]) { n.exp -= EXP_NEED[n.level]; setLevel(n, n.level + 1); n.flash = 1; toast(T(`⬆️ ${nameOf(n.owner)}的 ${rn(n.p)} 升到 ${n.level} 级`, `⬆️ ${nameOf(n.owner)}: ${rn(n.p)} reached level ${n.level}`), n.owner); }
   }
   for (const q of queues) {
     q.t -= dt;
@@ -169,16 +180,16 @@ function arrive(u) {
   const n = u.to;
   if (n.owner === u.owner) { n.troops++; return; }
   n.troops--;
-  if (n.troops < 0) { toast(`⚔️ ${nameOf(u.owner)}${n.owner < 0 ? '占领了' : '攻下了' + nameOf(n.owner) + '的'} ${n.p.name}`, u.owner, n.owner); n.troops = 1; n.owner = u.owner; n.acc = 0; loseExp(n); sel.delete(n); }
+  if (n.troops < 0) { toast(EN ? `⚔️ ${nameOf(u.owner)} ${n.owner < 0 ? 'took' : 'captured ' + nameOf(n.owner) + "'s"} ${rn(n.p)}` : `⚔️ ${nameOf(u.owner)}${n.owner < 0 ? '占领了' : '攻下了' + nameOf(n.owner) + '的'} ${rn(n.p)}`, u.owner, n.owner); n.troops = 1; n.owner = u.owner; n.acc = 0; loseExp(n); sel.delete(n); }
 }
 function checkEnd(live) {
   if (over) return;
   const me = live.has(0), foes = [...live].some(o => o > 0);
   if (!me || !foes) {
     over = true; phase = 'end';
-    $('mtitle').textContent = me ? `🎉 统一${MAP.title}！` : '💀 你被消灭了';
+    $('mtitle').textContent = me ? T(`🎉 统一${mapTitle(MAP)}！`, `🎉 You conquered ${mapTitle(MAP)}!`) : T('💀 你被消灭了', '💀 You were eliminated');
     $('mtitle').style.color = me ? '#ffd166' : '#ff5d5d';
-    $('mtext').textContent = `用时 ${Math.round(t0)} 秒 · 占领 ${nodes.filter(n => n.owner === 0).length} / ${nodes.length} 个地区`;
+    $('mtext').textContent = T(`用时 ${Math.round(t0)} 秒 · 占领 ${nodes.filter(n => n.owner === 0).length} / ${nodes.length} 个地区`, `Time ${Math.round(t0)}s · Held ${nodes.filter(n => n.owner === 0).length} / ${nodes.length} regions`);
     $('endMask').style.display = 'flex';
   }
 }
@@ -315,7 +326,7 @@ addEventListener('keydown', e => {
 });
 function setPaused(v) {
   paused = v && phase === 'play';
-  $('pauseBtn').textContent = paused ? '▶ 继续 (空格/Esc)' : '⏸ 暂停 (空格/Esc)';
+  $('pauseBtn').textContent = paused ? T('▶ 继续 (空格/Esc)', '▶ Resume') : T('⏸ 暂停 (空格/Esc)', '⏸ Pause');
   $('pauseBtn').classList.toggle('on', paused);
   $('pauseTag').style.display = paused ? 'block' : 'none';
 }
@@ -337,13 +348,13 @@ function refreshSetup() {
   const maxAi = MAP.p.length - 1; // 对手 + 你 = 全部地区
   cfg.ais = Math.max(1, Math.min(cfg.ais, maxAi));
   for (const id of ['aiRange', 'aiNum']) { $(id).max = maxAi; $(id).value = cfg.ais; }
-  $('aiMax').textContent = `最多 ${maxAi}（共 ${MAP.p.length} 个地区）`;
-  const opts = MAP.p.map((p, i) => [i, p.name]).sort((a, b) => a[1].localeCompare(b[1], 'zh'));
-  $('startSel').innerHTML = '<option value="pick">在地图上点选</option><option value="random">🎲 随机</option>' + opts.map(([i, n]) => `<option value="${i}">${n}</option>`).join('');
+  $('aiMax').textContent = T(`最多 ${maxAi}（共 ${MAP.p.length} 个地区）`, `max ${maxAi} (${MAP.p.length} regions)`);
+  const opts = MAP.p.map((p, i) => [i, rn(p)]).sort((a, b) => a[1].localeCompare(b[1], LANG));
+  $('startSel').innerHTML = `<option value="pick">${T('在地图上点选', 'Click on map')}</option><option value="random">🎲 ${T('随机', 'Random')}</option>` + opts.map(([i, n]) => `<option value="${i}">${n}</option>`).join('');
   $('startSel').value = cfg.start === 'pick' || cfg.start === 'random' ? cfg.start : 'pick';
   document.querySelectorAll('#mapBtns button').forEach(b => b.classList.toggle('on', b.dataset.m === cfg.map));
 }
-$('mapBtns').innerHTML = MAP_INDEX.map(m => `<button data-m="${m.key}">${m.title}<span class="hint"> ${m.n}</span></button>`).join('');
+$('mapBtns').innerHTML = MAP_INDEX.map(m => `<button data-m="${m.key}">${mapTitle(m)}<span class="hint"> ${m.n}</span></button>`).join('');
 document.querySelectorAll('#mapBtns button').forEach(b => b.onclick = () => { cfg.map = b.dataset.m; refreshSetup(); });
 const setAi = v => { const max = +$('aiNum').max; cfg.ais = Math.max(1, Math.min(max, Math.round(+v) || 1)); $('aiRange').value = $('aiNum').value = cfg.ais; };
 $('aiRange').oninput = e => setAi(e.target.value);
@@ -427,7 +438,7 @@ function drawPass() {
     }
     if (s) { ctx.beginPath(); ctx.arc(x, y, r + 4 + Math.sin(performance.now() / 150) * 1.5, 0, 7); ctx.strokeStyle = '#ffd16688'; ctx.lineWidth = 2; ctx.stroke(); }
     ctx.fillStyle = '#fff'; ctx.font = `bold ${fs}px sans-serif`; ctx.fillText(n.troops, x, y + 1);
-    if (MAP.r * Math.sqrt(zoom) >= 9 || hover === n) { ctx.fillStyle = '#ffffffbb'; ctx.font = `${Math.max(10, fs - 2)}px sans-serif`; ctx.fillText(hover === n && n.p.full ? n.p.full : n.p.name, x, y + r + 8); }
+    if (MAP.r * Math.sqrt(zoom) >= 9 || hover === n) { ctx.fillStyle = '#ffffffbb'; ctx.font = `${Math.max(10, fs - 2)}px sans-serif`; ctx.fillText(hover === n && rfull(n.p) ? rfull(n.p) : rn(n.p), x, y + r + 8); }
   }
   if (drag && drag.moved && !drag.chain && firstPass) { // 框选矩形
     ctx.translate(0, -52);
@@ -442,10 +453,10 @@ function hud() { // 状态栏：只列出你和兵力前 4 的对手
   const others = [...agg.keys()].filter(o => o > 0).sort((a, b) => agg.get(b).t - agg.get(a).t);
   const show = [0, ...others.slice(0, 4)];
   const rest = others.length - 4;
-  $('stats').innerHTML = show.map(o => { const a = agg.get(o) || { c: 0, t: 0 }; return `<span><b style="background:${color(o)}"></b>${nameOf(o)} ${a.c}地 / ${a.t}兵</span>`; }).join('')
-    + (rest > 0 ? `<span>+${rest} 个对手</span>` : '');
-  $('tip').innerHTML = phase === 'pick' ? `点击地图选择你在<em>${MAP.title}</em>的起始地区`
-    : phase === 'play' ? `已选 <em>${sel.size}</em> · 按住己方城市<em>拖到</em>目标出兵 · <em>长按</em>加入选择 · 空白拖动框选 · 右键取消选中 · 圆点＝等级 · WASD 移动 · 滚轮缩放 · Q 全选 · 1/2/3 出兵 50%/80%/全部 · 空格暂停`
+  $('stats').innerHTML = show.map(o => { const a = agg.get(o) || { c: 0, t: 0 }; return `<span><b style="background:${color(o)}"></b>${nameOf(o)} ${a.c}${T('地', '')} / ${a.t}${T('兵', '')}</span>`; }).join('')
+    + (rest > 0 ? `<span>+${rest} ${T('个对手', 'more')}</span>` : '');
+  $('tip').innerHTML = phase === 'pick' ? T(`点击地图选择你在<em>${mapTitle(MAP)}</em>的起始地区`, `Click the map to choose your starting region in <em>${mapTitle(MAP)}</em>`)
+    : phase === 'play' ? T(`已选 <em>${sel.size}</em> · 按住己方城市<em>拖到</em>目标出兵 · <em>长按</em>加入选择 · 空白拖动框选 · 右键取消选中 · 圆点＝等级 · WASD 移动 · 滚轮缩放 · Q 全选 · 1/2/3 出兵 50%/80%/全部 · 空格暂停`, `Sel <em>${sel.size}</em> · <em>Drag</em> city→target to attack · <em>Long-press</em> to select · Box-select · Right-click deselect · WASD/wheel view · Q all · 1/2/3 send % · Space pause`)
     : '';
   $('tip').style.display = $('tip').innerHTML ? '' : 'none';
 }
@@ -458,6 +469,21 @@ function loop(now) {
   if ((hudT -= dt) <= 0) { hudT = 0.2; hud(); }
   requestAnimationFrame(loop);
 }
+// 静态界面文字
+if (EN) {
+  document.documentElement.lang = 'en'; document.title = 'Province Wars';
+  const set = (sel, txt) => { const el = document.querySelector(sel); if (el) el.textContent = txt; };
+  set('#bar h1', '☀️ Province Wars'); set('#selAll', 'All (Q)'); set('#newGame', 'New game');
+  set('#pauseTag', '⏸ Paused'); set('#setup h2', '⚔️ New Game'); set('#goBtn', 'Start'); set('#again', 'Play again');
+  set('[data-r="0.5"]', '50% (1)'); set('[data-r="0.8"]', '80% (2)'); set('[data-r="1"]', 'All (3)');
+  set('[data-d="0"]', 'Easy'); set('[data-d="1"]', 'Normal'); set('[data-d="2"]', 'Hard');
+  const lbl = { '速度': 'Speed', '出兵': 'Send' }; document.querySelectorAll('#bar .grp>span').forEach(e => e.textContent = lbl[e.textContent] || e.textContent);
+  const rl = ['Map', 'Opponents', 'Difficulty', 'Start']; document.querySelectorAll('#setup .row>label').forEach((e, i) => e.textContent = rl[i]);
+  set('#setup .row:nth-child(5) .hint', '"Click on map" lets you pick after starting');
+}
+setPaused(false);
+$('langBtn').textContent = EN ? '中文' : 'EN';
+$('langBtn').onclick = () => { localStorage.setItem('pw-lang', EN ? 'zh' : 'en'); location.search = '?lang=' + (EN ? 'zh' : 'en'); };
 openSetup(); requestAnimationFrame(loop);
 
 // ---------- 顶部事件提示 ----------
@@ -479,6 +505,6 @@ function loseExp(n) {
   if (n.exp < 0 && n.level > 1) {
     setLevel(n, n.level - 1);
     n.exp = Math.max(0, n.exp + EXP_NEED[n.level]);
-    toast(`⬇️ ${n.p.name} 经验不足，降为 ${n.level} 级`, n.owner);
+    toast(T(`⬇️ ${rn(n.p)} 经验不足，降为 ${n.level} 级`, `⬇️ ${rn(n.p)} dropped to level ${n.level}`), n.owner);
   } else n.exp = Math.max(0, n.exp);
 }
