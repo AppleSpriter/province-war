@@ -299,11 +299,12 @@ addEventListener('mouseup', e => {
   if (n && sel.size) { send([...sel], n); sel.clear(); }
   else if (!d.shift) sel.clear();
 });
-// 右键单击：选中的城市往这里出兵（己方即增援）
+// 右键单击：取消选中
 function rightClick(e) {
   if (phase !== 'play' || paused) return;
   const n = hitNode(e.clientX, e.clientY);
-  if (n && sel.size) send([...sel].filter(g => g !== n), n);
+  // 右键：点已选中的城市＝只取消它；点其他地方＝取消全部选中
+  if (n && sel.has(n)) sel.delete(n); else sel.clear();
 }
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
@@ -442,7 +443,7 @@ function hud() { // 状态栏：只列出你和兵力前 4 的对手
   $('stats').innerHTML = show.map(o => { const a = agg.get(o) || { c: 0, t: 0 }; return `<span><b style="background:${color(o)}"></b>${nameOf(o)} ${a.c}地 / ${a.t}兵</span>`; }).join('')
     + (rest > 0 ? `<span>+${rest} 个对手</span>` : '');
   $('tip').innerHTML = phase === 'pick' ? `点击地图选择你在<em>${MAP.title}</em>的起始地区`
-    : phase === 'play' ? `已选 <em>${sel.size}</em> · 按住己方城市<em>拖到</em>目标出兵 · <em>长按</em>加入选择 · 空白拖动框选 · 圆点＝等级 · WASD 移动 · 滚轮缩放 · Q 全选 · 空格暂停`
+    : phase === 'play' ? `已选 <em>${sel.size}</em> · 按住己方城市<em>拖到</em>目标出兵 · <em>长按</em>加入选择 · 空白拖动框选 · 右键取消选中 · 圆点＝等级 · WASD 移动 · 滚轮缩放 · Q 全选 · 空格暂停`
     : '';
   $('tip').style.display = $('tip').innerHTML ? '' : 'none';
 }
