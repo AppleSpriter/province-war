@@ -27,7 +27,7 @@ const DIFF = [ // AI 思考间隔(秒)、进攻所需兵力倍数、是否多点
   { think: 1.3, margin: 1.15, combine: true, reinforce: true },
 ];
 const SPAWN_GAP = 0.06, UNIT_SPEED = 55;
-let attackLines = [];
+let attackLines = [], mouseX = 0, mouseY = 0, selCount = 0, selCountT = 0;
 let paused = false, zoom = 1, panX = 0, panY = 0, baseScale = 1, panDrag = null;
 let MAP, nodes, units, queues, phase = 'setup', sel, scale, ox, oy, aiTimers, drag, hover, over, t0, maxArea, inc;
 
@@ -277,6 +277,7 @@ cv.addEventListener('mousedown', e => {
   if (n && n.owner === 0) drag.chain = new Set(sel.has(n) ? [...sel] : [n]);
 });
 addEventListener('mousemove', e => {
+  mouseX = e.clientX; mouseY = e.clientY;
   hover = (phase === 'play' || phase === 'pick') ? hitNode(e.clientX, e.clientY) : null;
   if (!drag) return;
   drag.x = e.clientX; drag.y = e.clientY;
@@ -375,13 +376,14 @@ let firstPass = true;
 function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
   if (!nodes) return;
-  if (!MAP.wrap) { firstPass = true; drawPass(); return; }
+  if (!MAP.wrap) { firstPass = true; drawPass(); drawCursorCount(); return; }
   const base = ox, Ws = MAP.w * scale;
   for (const k of [-1, 0, 1]) { // 世界地图：左右各再画一份，实现无缝循环
     ox = base + k * Ws; firstPass = k === 0;
     if (ox + Ws > 0 && ox < innerWidth) drawPass();
   }
   ox = base;
+  drawCursorCount();
 }
 function drawPass() {
   const dpr = devicePixelRatio;
@@ -391,6 +393,10 @@ function drawPass() {
     ctx.fill(n.p.path);
     ctx.lineWidth = 1 / scale; ctx.strokeStyle = '#0b1424'; ctx.stroke(n.p.path);
     if (hover === n) { ctx.fillStyle = '#ffffff22'; ctx.fill(n.p.path); }
+    if (sel.has(n) || (drag && drag.chain && drag.chain.has(n))) { // 选中城市高亮：亮色覆盖 + 金色描边
+      ctx.fillStyle = '#ffd16633'; ctx.fill(n.p.path);
+      ctx.lineWidth = 2.5 / scale; ctx.strokeStyle = '#ffd166'; ctx.stroke(n.p.path);
+    }
   }
   if (drag && drag.chain && drag.moved) { // 串联拖拽箭头
     const group = [...drag.chain];
@@ -507,4 +513,25 @@ function loseExp(n) {
     n.exp = Math.max(0, n.exp + EXP_NEED[n.level]);
     toast(T(`⬇️ ${rn(n.p)} 经验不足，降为 ${n.level} 级`, `⬇️ ${rn(n.p)} dropped to level ${n.level}`), n.owner);
   } else n.exp = Math.max(0, n.exp);
+}
+
+// 指针上方显示选中城市的总兵力，每秒刷新一次
+function drawCursorCount() {
+  if (phase !== 'play') return;
+  const group = new Set(sel); if (drag && drag.chain) drag.chain.forEach(n => group.add(n));
+  for (const n of group) if (n.owner !== 0) group.delete(n);
+  if (!group.size) { selCountT = 0; return; }
+  const now = performance.now();
+  if (!selCountT || now - selCountT >= 1000 || group.size !== selCount.n) {
+    let t = 0; for (const n of group) t += n.troops;
+    selCount = { n: group.size, t }; selCountT = now;
+  }
+  const dpr = devicePixelRatio;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const txt = EN ? `${selCount.t} troops · ${selCount.n} cities` : `${selCount.t} 兵 · ${selCount.n} 城`;
+  ctx.font = 'bold 13px sans-serif';
+  const w = ctx.measureText(txt).width + 16, x = mouseX, y = mouseY - 52 - 22;
+  ctx.fillStyle = '#101c33e6'; ctx.strokeStyle = '#ffd166'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect(x - w / 2, y - 11, w, 22, 6); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#ffd166'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(txt, x, y + 1);
 }
